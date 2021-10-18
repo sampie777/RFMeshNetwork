@@ -1,17 +1,29 @@
 #include <Arduino.h>
 #include "Mesh.h"
 
-Mesh mesh = Mesh(3, 0);
+#define LED_BUILTIN 2
+Mesh mesh = Mesh(13, 12, MESH_TRANSMIT_AND_RECEIVE);
 
 // Get random value for device ID (will change on each reboot)
 uint8_t device_id = random(0, 255);
 
+void pulseLight() {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(80);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(200);
+}
+
 void setup() {
+    pinMode(LED_BUILTIN, OUTPUT);
     Serial.begin(115200);
     Serial.print("Device random ID: ");
     Serial.println(device_id);
 
     Serial.println("Ready.");
+    pulseLight();
+    pulseLight();
+    pulseLight();
 }
 
 void dumpMessage(const MeshMessage &message) {
@@ -27,16 +39,19 @@ void dumpMessage(const MeshMessage &message) {
 
 void loop() {
     static MeshMessage message;
-    static unsigned long nextSendTime = random(0, 8000);
+//    static unsigned long nextSendTime = random(0, 8000);
+    static unsigned long nextSendTime = 3000;
     static uint8_t id = 0;
 
     if (mesh.receive(&message) == Mesh::RESULT_OK) {
+        pulseLight();
+        pulseLight();
         dumpMessage(message);
         id = message.id + 1;
     }
 
-    if (millis() >= nextSendTime) {
-        nextSendTime = millis() + random(1000, 8000);
+    if (millis() >= nextSendTime && mesh.mode & MESH_TRANSMIT) {
+        Serial.print("Sending message... ");
 
         message.id = id++;
         message.data[0] = device_id;
@@ -44,7 +59,11 @@ void loop() {
         message.data[2] = 0x45;
         mesh.send(&message);
 
+        pulseLight();
         Serial.print("Message sent with id: ");
         Serial.println(message.id);
+
+//        nextSendTime = millis() + random(1000, 8000);
+        nextSendTime = millis() + 3000;
     }
 }

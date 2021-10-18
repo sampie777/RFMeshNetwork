@@ -11,6 +11,10 @@
 
 #define MAX_RECEIVED_IDS 64
 
+#define MESH_TRANSMIT 1
+#define MESH_RECEIVE 2
+#define MESH_TRANSMIT_AND_RECEIVE 3
+
 class Mesh {
 public:
     enum RESULT {
@@ -19,9 +23,7 @@ public:
         RESULT_EMPTY = 2,
     };
 
-    Mesh(uint8_t txPin, uint8_t rxPin);
-
-    Mesh(RCSwitch *tx, RCSwitch *rx);
+    Mesh(uint8_t txPin, uint8_t rxPin, uint8_t mode);
 
     void send(const MeshMessage *message);
 
@@ -29,9 +31,10 @@ public:
 
     void forward(const MeshMessage *message);
 
+    uint8_t mode = MESH_TRANSMIT_AND_RECEIVE;
+
 private:
-    RCSwitch *tx;
-    RCSwitch *rx;
+    RCSwitch rcSwitch = RCSwitch();
 
     void markAsReceived(const MeshMessage *message);
 

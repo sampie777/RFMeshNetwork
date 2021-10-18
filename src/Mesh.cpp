@@ -4,37 +4,43 @@
 
 #include "Mesh.h"
 
-Mesh::Mesh(RCSwitch *tx, RCSwitch *rx) : tx(tx), rx(rx) {}
+Mesh::Mesh(uint8_t txPin, uint8_t rxPin, uint8_t mode) {
+    this->mode = mode;
 
-Mesh::Mesh(uint8_t txPin, uint8_t rxPin) {
-    RCSwitch txSwitch = RCSwitch();
-    RCSwitch rxSwitch = RCSwitch();
-
-    txSwitch.enableTransmit(txPin);
-    rxSwitch.enableReceive(rxPin);
-
-    tx = &txSwitch;
-    rx = &rxSwitch;
+    if (mode & MESH_TRANSMIT) {
+        rcSwitch.enableTransmit(txPin);
+    }
+    if (mode & MESH_RECEIVE) {
+        rcSwitch.enableReceive(rxPin);
+    }
 }
 
 void Mesh::send(const MeshMessage *message) {
+    if (!(mode & MESH_TRANSMIT)) {
+        return;
+    }
+
     char bytes[sizeof(struct MeshMessage)];
     memcpy(bytes, message, sizeof(bytes));
 
     markAsReceived(message);
 
-    tx->send(bytes);
+    rcSwitch.send(bytes);
 }
 
 Mesh::RESULT Mesh::receive(MeshMessage *message) {
-    if (!rx->available()) {
+    if (!(mode & MESH_RECEIVE)) {
+        return Mesh::RESULT_EMPTY;
+    }
+
+    if (!rcSwitch.available()) {
         return Mesh::RESULT_EMPTY;
     }
 
     // Retrieve message data
-    uint32_t data = rx->getReceivedValue();
-    unsigned int receivedBitlength = rx->getReceivedBitlength();
-    rx->resetAvailable();
+    uint32_t data = rcSwitch.getReceivedValue();
+    unsigned int receivedBitlength = rcSwitch.getReceivedBitlength();
+    rcSwitch.resetAvailable();
 
     // Check for correct bit size
     if (receivedBitlength != 8 * sizeof(struct MeshMessage)) {
