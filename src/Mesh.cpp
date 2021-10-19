@@ -20,12 +20,15 @@ void Mesh::send(const MeshMessage *message) {
         return;
     }
 
-    char bytes[sizeof(struct MeshMessage)];
-    memcpy(bytes, message, sizeof(bytes));
+    uint32_t txData = 0;
+    txData |= message->id << 3 * 8;
+    txData |= message->data[0] << 2 * 8;
+    txData |= message->data[1] << 1 * 8;
+    txData |= message->data[2];
 
     markAsReceived(message);
 
-    rcSwitch.send(bytes);
+    rcSwitch.send(txData, 4 * 8);
 }
 
 Mesh::RESULT Mesh::receive(MeshMessage *message) {
@@ -43,7 +46,7 @@ Mesh::RESULT Mesh::receive(MeshMessage *message) {
     rcSwitch.resetAvailable();
 
     // Check for correct bit size
-    if (receivedBitlength != 8 * sizeof(struct MeshMessage)) {
+    if (receivedBitlength != 4 * 8) {
         // Debug output
         Serial.print("Message has invalid bit length: ");
         Serial.println(receivedBitlength);
@@ -52,7 +55,7 @@ Mesh::RESULT Mesh::receive(MeshMessage *message) {
     }
 
     // Check if message was already received before
-    uint8_t id = data >> 24;
+    uint8_t id = data >> 3 * 8;
     if (isIdReceived(id)) {
         // Debug output
         Serial.print("Ignoring message with id: ");
@@ -63,8 +66,8 @@ Mesh::RESULT Mesh::receive(MeshMessage *message) {
 
     // Store message
     message->id = id;
-    message->data[0] = data >> 16;
-    message->data[1] = data >> 8;
+    message->data[0] = data >> 2 * 8;
+    message->data[1] = data >> 1 * 8;
     message->data[2] = data;
 
     forward(message);

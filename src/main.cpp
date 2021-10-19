@@ -14,6 +14,17 @@ void pulseLight() {
     delay(200);
 }
 
+void dumpMessage(const MeshMessage &message) {
+    Serial.print("Message: id=");
+    Serial.print(message.id, DEC);
+    Serial.print("; data=");
+    Serial.print(message.data[0], HEX);
+    Serial.print(" ");
+    Serial.print(message.data[1], HEX);
+    Serial.print(" ");
+    Serial.println(message.data[2], HEX);
+}
+
 void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     Serial.begin(115200);
@@ -26,31 +37,20 @@ void setup() {
     pulseLight();
 }
 
-void dumpMessage(const MeshMessage &message) {
-    Serial.print("Message: id=");
-    Serial.print(message.id, HEX);
-    Serial.print("; data=");
-    Serial.print(message.data[0], HEX);
-    Serial.print(" ");
-    Serial.print(message.data[1], HEX);
-    Serial.print(" ");
-    Serial.println(message.data[2], HEX);
-}
-
 void loop() {
     static MeshMessage message;
 //    static unsigned long nextSendTime = random(0, 8000);
     static unsigned long nextSendTime = 3000;
     static uint8_t id = 0;
 
-    if (mesh.receive(&message) == Mesh::RESULT_OK) {
+    if (mesh.mode & MESH_RECEIVE  && mesh.receive(&message) == Mesh::RESULT_OK) {
         pulseLight();
         pulseLight();
         dumpMessage(message);
         id = message.id + 1;
     }
 
-    if (millis() >= nextSendTime && mesh.mode & MESH_TRANSMIT) {
+    if (mesh.mode & MESH_TRANSMIT && millis() >= nextSendTime) {
         Serial.print("Sending message... ");
 
         message.id = id++;
